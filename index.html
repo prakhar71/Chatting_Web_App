@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mongo Chat</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style>
+        #messages{
+            height: 300px;
+            overflow: scroll;
+        }
+
+        #status{
+            font-size: large;
+        }
+
+
+    </style>
+
+
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 col-sm-12 offset-md-3">
+            <h1 class="text-center">MongoChat
+            <button class="btn btn-danger" id="clear">Clear</button>
+            </h1><br>
+            <div id="status"></div><br>
+            <div id="chat">
+                <input type="text" placeholder="Enter name..." class="form-control" id="username" /><br>
+                <div class="card">
+                    <div id="messages">
+
+                    </div>
+                </div>
+                <br>
+                <textarea id="textarea" placeholder="enter message..." class="form-control"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src = "/socket.io/socket.io.js"></script>
+<script>
+    (function () {
+       var element = function (id) {
+           return document.getElementById(id);
+       };
+
+        // Get Elements
+        var status = element('status');
+        var messages = element('messages');
+        var textarea = element('textarea');
+        var username = element('username');
+        var clearBtn = element('clear');
+
+        //set default status
+
+        var defaultStatus = status.textContent;
+
+        //set status
+
+       var setStatus = function (s) {
+            status.style.color = 'green';
+           status.textContent = s;
+
+           setTimeout(function () {
+                   status.textContent = defaultStatus;
+               },4000);
+
+       };
+
+        var socket = io();
+
+        if(socket != undefined){
+            //conn still exists
+            console.log('conn to Socket');
+            
+            socket.on('output',function (data) {
+
+                if(data.length != 0){
+
+                    for(var x = 0 ;x< data.length;x++){
+                        var newDiv = document.createElement('div');
+                        newDiv.setAttribute('class','chat-message');
+                        newDiv.textContent = data[x].name + ":" + data[x].message;
+                        messages.appendChild(newDiv);
+
+
+                    }
+                }
+            });
+
+            //get Status
+
+            socket.on('status',function (s) {
+                console.log(s);
+                var status = (typeof s === 'object')? s.message : s;
+                setStatus(status);
+
+                if(s.clear){
+                    textarea.value = '';
+                }
+
+            });
+            
+            //handle the input
+            textarea.addEventListener('keydown',function (key) {
+
+                if(key.which === 13 && key.shiftKey == false){
+                    socket.emit('input',{
+                        name: username.value,
+                        message: textarea.value
+                    });
+                    //event.preventDefault();
+                }
+            });
+
+            clearBtn.addEventListener('click',function () {
+                socket.emit('clear');
+
+
+            });
+
+            socket.on('cleared',function () {
+                messages.textContent = '';
+            });
+
+
+
+
+            
+        }
+
+
+
+    })();
+</script>
+</body>
+</html>
